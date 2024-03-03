@@ -1,0 +1,105 @@
+{
+    "chatgpt" : {
+        "model_id": "gpt-3.5-turbo",
+        "prompt_token_cost": 0.0015,
+        "response_token_cost": 0.002,
+        "temperature": 0.7,
+        "max_tokens": 1536,
+        "stop": null,
+        "organization": "",
+        "api_key": "sk-1eJ7lggyvtqLt4Bs884d00F8096f4f34Ad95D7Ec3e97EaEc"
+    },
+    "chatglm" : {
+        "model_id": "chatglm2-6b",
+        "prompt_token_cost": 0.0015,
+        "response_token_cost": 0.002,
+        "url": "http://127.0.0.1:8000"
+    },
+    "chatglm8001" : {
+        "model_id": "chatglm2-6b",
+        "prompt_token_cost": 0.0015,
+        "response_token_cost": 0.002,
+        "url": "http://127.0.0.1:8001"
+    },
+    "chatglm8002" : {
+        "model_id": "chatglm2-6b",
+        "prompt_token_cost": 0.0015,
+        "response_token_cost": 0.002,
+        "url": "http://127.0.0.1:8002"
+    },
+    "chatglm8003" : {
+        "model_id": "chatglm2-6b",
+        "prompt_token_cost": 0.0015,
+        "response_token_cost": 0.002,
+        "url": "http://127.0.0.1:8003"
+    },
+    "chatglm8004" : {
+        "model_id": "chatglm2-6b",
+        "prompt_token_cost": 0.0015,
+        "response_token_cost": 0.002,
+        "url": "http://127.0.0.1:8004"
+    },
+    "chatglm8005" : {
+        "model_id": "chatglm2-6b",
+        "prompt_token_cost": 0.0015,
+        "response_token_cost": 0.002,
+        "url": "http://127.0.0.1:8005"
+    },
+    "chatglm8006" : {
+        "model_id": "chatglm2-6b",
+        "prompt_token_cost": 0.0015,
+        "response_token_cost": 0.002,
+        "url": "http://127.0.0.1:8006"
+    },
+    "chatglm8007" : {
+        "model_id": "chatglm2-6b",
+        "prompt_token_cost": 0.0015,
+        "response_token_cost": 0.002,
+        "url": "http://127.0.0.1:8007"
+    },
+    "internlm2" : {
+        "model_id": "internlm2-chat-7b",
+        "prompt_token_cost": 0.0015,
+        "response_token_cost": 0.002,
+        "url": "http://0.0.0.0:23333",
+        "temperature": 0.7,
+        "top_p": 0.7
+    },
+    "chatgpt4" : {
+        "model_id": "gpt-4",
+        "prompt_token_cost": 0.03,
+        "response_token_cost": 0.06,
+        "temperature": 1.0,
+        "max_tokens": 4096,
+        "stop": null,
+        "organization": "",
+        "api_key": ""
+    },
+    "llama7b-hf" : {
+        "model_id": "Llama-2-7b-chat-hf",
+        "cache_dir": "/llama",
+        "prompt_token_cost": 0.0,
+        "response_token_cost": 0.0,
+        "temperature": 0.6,
+        "top_k": 10,
+        "max_tokens": 4096
+    },
+    "llama13b-hf" : {
+        "model_id": "Llama-2-13b-chat-hf",
+        "cache_dir": "/llama",
+        "prompt_token_cost": 0.0,
+        "response_token_cost": 0.0,
+        "temperature": 0.6,
+        "top_k": 10,
+        "max_tokens": 4096
+    },
+    "llama70b-hf" : {
+        "model_id": "Llama-2-70b-chat-hf",
+        "cache_dir": "/llama",
+        "prompt_token_cost": 0.0,
+        "response_token_cost": 0.0,
+        "temperature": 0.6,
+        "top_k": 10,
+        "max_tokens": 4096
+    }
+}
