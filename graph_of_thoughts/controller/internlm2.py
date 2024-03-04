@@ -105,8 +105,7 @@ class InternLM2(AbstractLanguageModel):
         """
 
         # LMDeploy /v1/chat/completions interface
-        # Under the lmdeploy configuration of this version, the output of the same problem does not have randomness, and the output result is randomized by random numbers (Jayce don't know why..)
-        messages = [{"role": "user", "content": str(random.randint(1, 10000)) + messages[0]["content"] + str(random.randint(1, 10000))}]
+        messages = [{"role": "user", "content": messages[0]["content"]}]
         for item in self.api_client.chat_completions_v1(model=self.model_name, messages=messages, temperature=self.temperature, top_p=self.top_p):
             response = item
 

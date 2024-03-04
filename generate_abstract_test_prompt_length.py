@@ -576,37 +576,8 @@ def got() -> operations.GraphOfOperations:
 
     return operations_graph
 
+
 def dgot() -> operations.GraphOfOperations:
-    """
-    Generates the Graph of Operations for the GoT method, where generate thoughts
-    are merged.
-
-    :return: Graph of Operations
-    :rtype: GraphOfOperations
-    """
-    operations_graph = operations.GraphOfOperations()
-
-    branch_factor = 3
-
-    operations_graph.append_operation(operations.DGenerateScore(1, branch_factor, rouge1_f_test_introduction, 0.2))
-    operations_graph.append_operation(operations.Score(3, False, rouge1_f_test_introduction))
-    keep_best = operations.KeepBestN(3, True)
-    operations_graph.append_operation(keep_best)
-    operations_graph.append_operation(operations.DAggregate(3, rouge1_f_test_introduction, 1, 0.5))
-    operations_graph.append_operation(operations.Score(3, False, rouge1_f_test_introduction))
-    keep_best2 = operations.KeepBestN(1, True)
-    keep_best2.add_predecessor(keep_best)
-    operations_graph.append_operation(keep_best2)
-    operations_graph.append_operation(operations.DGenerateScore(1, branch_factor, rouge1_f_test_introduction, 0.2))
-    operations_graph.append_operation(operations.Score(3, False, rouge1_f_test_introduction))
-    keep_best3 = operations.KeepBestN(1, True)
-    keep_best3.add_predecessor(keep_best2)
-    operations_graph.append_operation(keep_best3)
-    operations_graph.append_operation(operations.Score(1, False, rouge1_f_gold_summary))
-
-    return operations_graph
-
-def dgot_aggregate() -> operations.GraphOfOperations:
     """
     Generates the Graph of Operations for the GoT method, where generate thoughts
     are merged.
@@ -749,6 +720,7 @@ def dgot_p3() -> operations.GraphOfOperations:
 def run(
     data_ids: List[int],
     methods: List[Callable[[], operations.GraphOfOperations]],
+    task: str,
     max_input_prompt_tokens_list: List[int],
     budget: float,
     lm_name: str,
@@ -764,6 +736,10 @@ def run(
     :type data_ids: List[int]
     :param methods: List of functions to generate Graphs of Operations.
     :type methods: Each function generates a Graph of Operation.
+    :param task: The task to be executed.
+    :type task: str
+    :param max_input_prompt_tokens_list: List of maximum input prompt tokens for each method.
+    :type max_input_prompt_tokens_list: List[int]
     :param budget: Language model budget for the execution in dollars.
     :type budget: float
     :param lm_name: Name of the language model to be used.
@@ -787,7 +763,7 @@ def run(
     if not os.path.exists(os.path.join(os.path.dirname(__file__), "results")):
         os.makedirs(os.path.join(os.path.dirname(__file__), "results"))
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    extra_info = f"{lm_name}_{'-'.join([method.__name__ for method in methods])}"
+    extra_info = f"{lm_name}_{'-'.join([method.__name__ for method in methods])}_{task}"
     folder_name = f"results/{extra_info}_{timestamp}"
     os.makedirs(os.path.join(os.path.dirname(__file__), folder_name))
 
@@ -954,6 +930,7 @@ if __name__ == "__main__":
     parser.add_argument('--end', type=int, default=100, help='End index')
     parser.add_argument('--mode', type=str, default="test", help='train or test')
     parser.add_argument('--model', type=str, default="internlm2", help='model name')
+    parser.add_argument('--task', type=str, default='default', help='0.default, 1.test_prompt_length, 2.test_nodes_num')
     args = parser.parse_args()
 
     mode = args.mode
@@ -968,15 +945,20 @@ if __name__ == "__main__":
 
     budget = 3000000000
     samples = [item for item in range(int(args.begin), int(args.end))]
-    # approaches = [io, cot, tot, got, dgot_aggregate]
-    approaches = [got]
-    # max_input_prompt_tokens_list = [256, 512, 1024, 2048, 4096, 8192, 16384]
-    max_input_prompt_tokens_list = [256, 512, 1024, 2048, 4096, 8192]
+    if args.task == 'default':
+        approaches = [io, cot, tot, got, dgot]
+    else:
+        approaches = [got]
+    
+    if args.task == 'test_prompt_length':
+        max_input_prompt_tokens_list = [256, 512, 1024, 2048, 4096, 8192]
+    else:
+        max_input_prompt_tokens_list = [2048]
 
     for max_input_prompt_tokens in max_input_prompt_tokens_list:
         generate_prompt_nums[str(max_input_prompt_tokens)] = 0
         cut_abstract_nums[str(max_input_prompt_tokens)] = 0
 
-    spent = run(samples, approaches, max_input_prompt_tokens_list, budget, args.model, data_path, save_pmc_folder, save_pm_folder)
+    spent = run(samples, approaches, args.task, max_input_prompt_tokens_list, budget, args.model, data_path, save_pmc_folder, save_pm_folder)
 
     logging.info(f"Spent {spent} out of {budget} budget.")
