@@ -5,3 +5,5 @@ __pycache__/
 *.pyc
 # Ignore Dataset
 data
+# Ignore output result
+results

@@ -109,7 +109,7 @@ Here is the origin article information <origin>:
 
         global generate_prompt_nums
         global cut_abstract_nums
-        generate_prompt_nums[self.max_input_prompt_tokens] += 1
+        generate_prompt_nums[str(self.max_input_prompt_tokens)] += 1
 
         encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
@@ -132,7 +132,7 @@ Here is the origin article information <origin>:
 
         origin_len = len(encoding.encode(origin))
         if base_len + origin_len > self.max_input_prompt_tokens:
-            cut_abstract_num[self.max_input_prompt_tokens] += 1
+            cut_abstract_nums[str(self.max_input_prompt_tokens)] += 1
             prompt += self.aggregate_full_prompt_end.format(
                 origin=origin, reference=reference
             )
@@ -190,7 +190,7 @@ Here is the origin article information <origin>:
 
         global generate_prompt_nums
         global cut_abstract_nums
-        generate_prompt_nums[self.max_input_prompt_tokens] += 1
+        generate_prompt_nums[str(self.max_input_prompt_tokens)] += 1
 
         encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
@@ -212,7 +212,7 @@ Here is the origin article information <origin>:
 
             origin_len = len(encoding.encode(origin))
             if base_len + origin_len > self.max_input_prompt_tokens:
-                cut_abstract_nums[self.max_input_prompt_tokens] += 1
+                cut_abstract_nums[str(self.max_input_prompt_tokens)] += 1
                 prompt += self.aggregate_full_prompt_end.format(
                     origin=origin, reference=reference
                 )
@@ -253,7 +253,7 @@ Here is the origin article information <origin>:
 
                 origin_len = len(encoding.encode(origin))
                 if base_len + origin_len > self.max_input_prompt_tokens:
-                    cut_abstract_nums[self.max_input_prompt_tokens] += 1
+                    cut_abstract_nums[str(self.max_input_prompt_tokens)] += 1
                     prompt += self.aggregate_full_prompt_end.format(
                         origin=origin, reference=reference
                     )
@@ -290,7 +290,7 @@ Here is the origin article information <origin>:
 
                 origin_len = len(encoding.encode(origin))
                 if base_len + origin_len > self.max_input_prompt_tokens:
-                    cut_abstract_nums[self.max_input_prompt_tokens] += 1
+                    cut_abstract_nums[str(self.max_input_prompt_tokens)] += 1
                     prompt += self.aggregate_full_prompt_end.format(
                         origin=origin, reference=reference
                     )
@@ -815,10 +815,10 @@ def run(
     for method in methods:
         for max_input_prompt_tokens in max_input_prompt_tokens_list:
             os.makedirs(
-                os.path.join(os.path.dirname(__file__), folder_name, method.__name__+'_'+max_input_prompt_tokens)
+                os.path.join(os.path.dirname(__file__), folder_name, method.__name__+'_'+str(max_input_prompt_tokens))
             )
-            inference_time_dict[method.__name__+'_'+max_input_prompt_tokens] = 0
-            inference_num_dict[method.__name__+'_'+max_input_prompt_tokens] = 0
+            inference_time_dict[method.__name__+'_'+str(max_input_prompt_tokens)] = 0
+            inference_num_dict[method.__name__+'_'+str(max_input_prompt_tokens)] = 0
     
     # 遍历每篇文章数据
     for index, data in tqdm(enumerate(selected_data), total=len(selected_data)):
@@ -854,11 +854,18 @@ def run(
                         f"Budget has been depleted, stopping. Method {method.__name__} has not been run."
                     )
                     break
-                lm = controller.ChatGLM(
-                    "./graph_of_thoughts/controller/config.json",
-                    model_name=lm_name,
-                    cache=False,
-                )
+                if "internlm" in lm_name:
+                    lm = controller.InternLM2(
+                        "./graph_of_thoughts/controller/config.json",
+                        model_name=lm_name,
+                        cache=False,
+                    )
+                elif "chatglm" in lm_name:
+                    lm = controller.ChatGLM(
+                        "./graph_of_thoughts/controller/config.json",
+                        model_name=lm_name,
+                        cache=False,
+                    )
                 operations_graph = method()
                 executor = controller.Controller(
                     lm,
@@ -884,13 +891,13 @@ def run(
                 # record end time
                 end_time = time.time()
                 execution_time = end_time - start_time
-                inference_time_dict[method.__name__+'_'+max_input_prompt_tokens] += execution_time
-                inference_num_dict[method.__name__+'_'+max_input_prompt_tokens] += 1
+                inference_time_dict[method.__name__+'_'+str(max_input_prompt_tokens)] += execution_time
+                inference_num_dict[method.__name__+'_'+str(max_input_prompt_tokens)] += 1
 
                 path = os.path.join(
                     os.path.dirname(__file__),
                     folder_name,
-                    method.__name__+'_'+max_input_prompt_tokens,
+                    method.__name__+'_'+str(max_input_prompt_tokens),
                     f"{data_ids[0] + index}.json",
                 )
                 # for operation in operations_graph.operations:
@@ -902,7 +909,7 @@ def run(
                 budget -= lm.cost
 
     # save inference time as .txt
-    data_to_write = "approach_max_input_prompt_length time(s) inference_num time_per_inference"
+    data_to_write = "approach_max_input_prompt_length time(s) inference_num time_per_inference\n"
     for key, value in inference_time_dict.items():
         data_to_write += f"{key} {value} {inference_num_dict[key]} {value/inference_num_dict[key]}\n"
 
@@ -917,7 +924,7 @@ def run(
         file.write(data_to_write)
 
     # save cut prompt num to .txt
-    data_to_write = "max_input_prompt_length cut_num prompt_num cut_num/prompt_num"
+    data_to_write = "max_input_prompt_length cut_num prompt_num cut_num/prompt_num\n"
     global generate_prompt_nums
     global cut_abstract_nums
     for key, value in cut_abstract_nums.items():
@@ -964,7 +971,7 @@ if __name__ == "__main__":
     # approaches = [io, cot, tot, got, dgot_aggregate]
     approaches = [got]
     # max_input_prompt_tokens_list = [256, 512, 1024, 2048, 4096, 8192, 16384]
-    max_input_prompt_tokens_list = [256, 512]
+    max_input_prompt_tokens_list = [256, 512, 1024, 2048, 4096, 8192]
 
     for max_input_prompt_tokens in max_input_prompt_tokens_list:
         generate_prompt_nums[str(max_input_prompt_tokens)] = 0

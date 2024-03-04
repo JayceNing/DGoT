@@ -52,13 +52,13 @@ class InternLM2(AbstractLanguageModel):
 
     def query(self, query: str, num_responses: int = 1) -> Dict:
         """
-        Query the ChatGLM model for responses.
+        Query the InternLM2 model for responses.
 
         :param query: The query to be posed to the language model.
         :type query: str
         :param num_responses: Number of desired responses, default is 1.
         :type num_responses: int
-        :return: Response(s) from the ChatGLM model.
+        :return: Response(s) from the InternLM2 model.
         :rtype: Dict
         """
         if self.cache and query in self.respone_cache:
@@ -100,14 +100,16 @@ class InternLM2(AbstractLanguageModel):
         :type messages: List[Dict]
         :param num_responses: Number of desired responses, default is 1.
         :type num_responses: int
-        :return: The ChatGLM model's response.
+        :return: The InternLM2 model's response.
         :rtype: Dict
         """
 
         # LMDeploy /v1/chat/completions interface
-        messages = [{"role": "user", "content": messages[0]["content"]}]
-        response = self.api_client.chat_completions_v1(model=self.model_name, messages=messages, temperature=self.temperature, top_p=self.top_p)[0]
-    
+        # Under the lmdeploy configuration of this version, the output of the same problem does not have randomness, and the output result is randomized by random numbers (Jayce don't know why..)
+        messages = [{"role": "user", "content": str(random.randint(1, 10000)) + messages[0]["content"] + str(random.randint(1, 10000))}]
+        for item in self.api_client.chat_completions_v1(model=self.model_name, messages=messages, temperature=self.temperature, top_p=self.top_p):
+            response = item
+
         self.prompt_tokens += response["usage"]["prompt_tokens"]
         self.completion_tokens += response["usage"]["completion_tokens"]
         prompt_tokens_k = float(self.prompt_tokens) / 1000.0
@@ -117,7 +119,7 @@ class InternLM2(AbstractLanguageModel):
             + self.response_token_cost * completion_tokens_k
         )
         self.logger.info(
-            f"This is the response from chatglm: {response}"
+            f"This is the response from internlm2: {response}"
             f"\nThis is the cost of the response: {self.cost}"
         )
         return response
