@@ -10,7 +10,7 @@ import csv
 from statistics import fmean
 from typing import Dict, List, Callable, Set, Union
 from graph_of_thoughts import controller, operations, prompter, parser
-from utils import read_pmc, read_pm, rouge1_f_test_introduction, rouge1_f_gold_summary
+from utils import read_pmc, read_pm, rouge1_f_test_introduction, rouge1_f_gold_summary, read_each_task_results, process_data_for_all_tasks, draw_line_box_bar_figure
 from tqdm import tqdm
 import argparse
 import tiktoken
@@ -916,7 +916,7 @@ def run(
     with open(file_name, "w") as file:
         file.write(data_to_write)
 
-    return orig_budget - budget
+    return orig_budget - budget, os.path.join(os.path.dirname(__file__),folder_name)
 
 
 if __name__ == "__main__":
@@ -962,3 +962,11 @@ if __name__ == "__main__":
     spent = run(samples, approaches, args.task, max_input_prompt_tokens_list, budget, args.model, data_path, save_pmc_folder, save_pm_folder)
 
     logging.info(f"Spent {spent} out of {budget} budget.")
+
+    # draw figure
+    if args.task == 'test_prompt_length':
+        # need to update
+        folder_path = "results_DGoT/internlm2_got_test_prompt_length_2024-03-04_06-35-46"
+        r_1_distribution_dict, mean_r_1_list, mean_cost_dict = process_data_for_all_tasks(folder_path)
+        draw_line_box_bar_figure(r_1_distribution_dict, mean_r_1_list, mean_cost_dict)
+
