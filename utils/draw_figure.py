@@ -53,26 +53,26 @@ def process_data_for_all_tasks(folder_path):
     mean_cost_dict = {}
     
     # save process result to .txt
-    data_to_write = "r_1 r_2 r_L mean_prompt_tokens mean_completion_tokens mean_cost\n"
+    data_to_write = "task_name r_1 r_2 r_L mean_prompt_tokens mean_completion_tokens mean_cost\n"
     mean_r_1_list = []
     for foldername, subfolders, filenames in os.walk(folder_path):
         for subfolder in subfolders:
             if len(subfolder.split("_"))>1:
                 if subfolder.split("_")[0] == "io":
-                    task_name = "IO " + subfolder.split("_")[-1]
+                    task_name = subfolder.replace("io", "IO").replace("_", " ")
                 elif subfolder.split("_")[0] == "cot":
-                    task_name = "CoT " + subfolder.split("_")[-1]
+                    task_name = subfolder.replace("cot", "CoT").replace("_", " ")
                 elif subfolder.split("_")[0] == "tot":
-                    task_name = "ToT " + subfolder.split("_")[-1]
+                    task_name = subfolder.replace("tot", "ToT").replace("_", " ")
                 elif subfolder.split("_")[0] == "got":
-                    task_name = "GoT " + subfolder.split("_")[-1]
+                    task_name = subfolder.replace("got", "GoT").replace("_", " ")
                 elif subfolder.split("_")[0] == "dgot":
-                    task_name = "DGoT " + subfolder.split("_")[-1]
+                    task_name = subfolder.replace("dgot", "DGoT").replace("_", " ")
             else:
                 task_name = subfolder
             print("processing " + task_name)
             r_1, r_2, r_L, mean_r_1, mean_r_2, mean_r_L, mean_prompt_tokens, mean_completion_tokens, mean_cost = read_each_task_results([os.path.join(folder_path, subfolder)])
-            data_to_write += f"{mean_r_1} {mean_r_2} {mean_r_L} {mean_prompt_tokens} {mean_completion_tokens} {mean_cost}\n"
+            data_to_write += f"{task_name} {mean_r_1} {mean_r_2} {mean_r_L} {mean_prompt_tokens} {mean_completion_tokens} {mean_cost}\n"
             mean_r_1_list.append(mean_r_1)
             r_1_distribution_dict[task_name] = r_1
             mean_cost_dict[task_name] = mean_cost
@@ -83,7 +83,7 @@ def process_data_for_all_tasks(folder_path):
 
     return r_1_distribution_dict, mean_r_1_list, mean_cost_dict
 
-def draw_line_box_bar_figure(r_1_distribution_dict, mean_r_1_list, mean_cost_dict):
+def draw_line_box_bar_figure(r_1_distribution_dict, mean_r_1_list, mean_cost_dict, folder_path):
     # 创建箱线图的坐标轴
     fig, ax1 = plt.subplots(figsize=(8, 6))
     # 创建柱状图的坐标轴
@@ -112,11 +112,20 @@ def draw_line_box_bar_figure(r_1_distribution_dict, mean_r_1_list, mean_cost_dic
     # 绘制箱线图
     ax1.boxplot(line_box_data, notch=True, patch_artist=True, boxprops=boxprops, medianprops=medianprops)
     
-    label = ax1.text(0.12, r1_mean_for_label_position, "the higher the better", ha='center', va='center', fontsize=12, fontweight='bold',  rotation=90)
+    label = ax1.text(0.10, r1_mean_for_label_position, "the higher the better", ha='center', va='center', fontsize=12, fontweight='bold',  rotation=90)
     ax1.set_ylabel('Socre                                                :')
 
+    xtick_labels = []
     # 设置x轴刻度标签
-    ax1.set_xticklabels(sorted_key)
+    if "test_prompt_length" in folder_path:
+        for key in sorted_key:
+            xtick_labels.append(key.split(" ")[0] + " " + key.split(" ")[1])
+    elif "test_nodes_num" in folder_path:
+        for key in sorted_key:
+            xtick_labels.append(key.split(" ")[0] + " " + key.split(" ")[2])
+    else:
+        xtick_labels = sorted_key
+    ax1.set_xticklabels(xtick_labels)
     ax2.set_xticks(list(range(1, 1+len(mean_cost_dict))))
     # 设置y轴刻度颜色
     ax2.tick_params(axis='y', colors=(127/255, 127/255, 255/255))  # 这里将y轴刻度颜色设置为蓝色

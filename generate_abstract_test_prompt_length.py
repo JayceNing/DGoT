@@ -10,7 +10,7 @@ import csv
 from statistics import fmean
 from typing import Dict, List, Callable, Set, Union
 from graph_of_thoughts import controller, operations, prompter, parser
-from utils import read_pmc, read_pm, rouge1_f_test_introduction, rouge1_f_gold_summary, read_each_task_results, process_data_for_all_tasks, draw_line_box_bar_figure
+from utils import read_pmc, read_pm, rouge1_f_test_introduction, rouge1_f_gold_summary, process_data_for_all_tasks, draw_line_box_bar_figure
 from tqdm import tqdm
 import argparse
 import tiktoken
@@ -517,7 +517,7 @@ def cot() -> operations.GraphOfOperations:
     return operations_graph
 
 
-def tot() -> operations.GraphOfOperations:
+def tot(branch_factor: int) -> operations.GraphOfOperations:
     """
     Generates the Graph of Operations for the ToT method.
 
@@ -526,16 +526,14 @@ def tot() -> operations.GraphOfOperations:
     """
     operations_graph = operations.GraphOfOperations()
 
-    branch_factor = 3
-
     operations_graph.append_operation(operations.Generate(1, branch_factor))
-    operations_graph.append_operation(operations.Score(3, False, rouge1_f_test_introduction))
+    operations_graph.append_operation(operations.Score(branch_factor, False, rouge1_f_test_introduction))
     keep_best_1 = operations.KeepBestN(1, True)
     operations_graph.append_operation(keep_best_1)
 
     for _ in range(2):
         operations_graph.append_operation(operations.Generate(1, branch_factor))
-        operations_graph.append_operation(operations.Score(3, False, rouge1_f_test_introduction))
+        operations_graph.append_operation(operations.Score(branch_factor, False, rouge1_f_test_introduction))
         keep_best_2 = operations.KeepBestN(1, True)
         keep_best_2.add_predecessor(keep_best_1)
         operations_graph.append_operation(keep_best_2)
@@ -546,7 +544,7 @@ def tot() -> operations.GraphOfOperations:
     return operations_graph
 
 
-def got() -> operations.GraphOfOperations:
+def got(branch_factor: int) -> operations.GraphOfOperations:
     """
     Generates the Graph of Operations for the GoT method, where generate thoughts
     are merged.
@@ -556,19 +554,17 @@ def got() -> operations.GraphOfOperations:
     """
     operations_graph = operations.GraphOfOperations()
 
-    branch_factor = 3
-
     operations_graph.append_operation(operations.Generate(1, branch_factor))
-    operations_graph.append_operation(operations.Score(3, False, rouge1_f_test_introduction))
-    keep_best = operations.KeepBestN(3, True)
+    operations_graph.append_operation(operations.Score(branch_factor, False, rouge1_f_test_introduction))
+    keep_best = operations.KeepBestN(branch_factor, True)
     operations_graph.append_operation(keep_best)
-    operations_graph.append_operation(operations.Aggregate(3))
-    operations_graph.append_operation(operations.Score(3, False, rouge1_f_test_introduction))
+    operations_graph.append_operation(operations.Aggregate(branch_factor))
+    operations_graph.append_operation(operations.Score(branch_factor, False, rouge1_f_test_introduction))
     keep_best2 = operations.KeepBestN(1, True)
     keep_best2.add_predecessor(keep_best)
     operations_graph.append_operation(keep_best2)
     operations_graph.append_operation(operations.Generate(1, branch_factor))
-    operations_graph.append_operation(operations.Score(3, False, rouge1_f_test_introduction))
+    operations_graph.append_operation(operations.Score(branch_factor, False, rouge1_f_test_introduction))
     keep_best3 = operations.KeepBestN(1, True)
     keep_best3.add_predecessor(keep_best2)
     operations_graph.append_operation(keep_best3)
@@ -577,7 +573,7 @@ def got() -> operations.GraphOfOperations:
     return operations_graph
 
 
-def dgot() -> operations.GraphOfOperations:
+def dgot(branch_factor: int) -> operations.GraphOfOperations:
     """
     Generates the Graph of Operations for the GoT method, where generate thoughts
     are merged.
@@ -592,19 +588,17 @@ def dgot() -> operations.GraphOfOperations:
     """
     operations_graph = operations.GraphOfOperations()
 
-    branch_factor = 3
-
     operations_graph.append_operation(operations.DGenerateScore(1, branch_factor, rouge1_f_test_introduction, 0.29))
-    operations_graph.append_operation(operations.Score(3, False, rouge1_f_test_introduction))
-    keep_best = operations.KeepBestN(3, True)
+    operations_graph.append_operation(operations.Score(branch_factor, False, rouge1_f_test_introduction))
+    keep_best = operations.KeepBestN(branch_factor, True)
     operations_graph.append_operation(keep_best)
-    operations_graph.append_operation(operations.DAggregate(3, rouge1_f_test_introduction, 0.31, 0.29))
-    operations_graph.append_operation(operations.Score(3, False, rouge1_f_test_introduction))
+    operations_graph.append_operation(operations.DAggregate(branch_factor, rouge1_f_test_introduction, 0.31, 0.29))
+    operations_graph.append_operation(operations.Score(branch_factor, False, rouge1_f_test_introduction))
     keep_best2 = operations.KeepBestN(1, True)
     keep_best2.add_predecessor(keep_best)
     operations_graph.append_operation(keep_best2)
     operations_graph.append_operation(operations.DGenerateScore(1, branch_factor, rouge1_f_test_introduction, 0.32))
-    operations_graph.append_operation(operations.Score(3, False, rouge1_f_test_introduction))
+    operations_graph.append_operation(operations.Score(branch_factor, False, rouge1_f_test_introduction))
     keep_best3 = operations.KeepBestN(1, True)
     keep_best3.add_predecessor(keep_best2)
     operations_graph.append_operation(keep_best3)
@@ -722,6 +716,7 @@ def run(
     methods: List[Callable[[], operations.GraphOfOperations]],
     task: str,
     max_input_prompt_tokens_list: List[int],
+    node_nums: List[int],
     budget: float,
     lm_name: str,
     data_path: str, #= './data/available_induc_test_graph.json',
@@ -740,6 +735,8 @@ def run(
     :type task: str
     :param max_input_prompt_tokens_list: List of maximum input prompt tokens for each method.
     :type max_input_prompt_tokens_list: List[int]
+    :param node_nums: List of node numbers for each method.
+    :type node_nums: List[int]
     :param budget: Language model budget for the execution in dollars.
     :type budget: float
     :param lm_name: Name of the language model to be used.
@@ -754,7 +751,6 @@ def run(
         # 从文件中加载JSON数据
         data = json.load(json_file)
 
-    # data_ids = [0] # 测试用
     if data_ids is None or len(data_ids) == 0:
         data_ids = list(range(len(data['PMCid'])))
     selected_data = [data['PMCid'][i] for i in data_ids]
@@ -790,11 +786,12 @@ def run(
 
     for method in methods:
         for max_input_prompt_tokens in max_input_prompt_tokens_list:
-            os.makedirs(
-                os.path.join(os.path.dirname(__file__), folder_name, method.__name__+'_'+str(max_input_prompt_tokens))
-            )
-            inference_time_dict[method.__name__+'_'+str(max_input_prompt_tokens)] = 0
-            inference_num_dict[method.__name__+'_'+str(max_input_prompt_tokens)] = 0
+            for node_num in node_nums:
+                os.makedirs(
+                    os.path.join(os.path.dirname(__file__), folder_name, method.__name__+'_'+str(max_input_prompt_tokens)+'_'+str(node_num))
+                )
+                inference_time_dict[method.__name__+'_'+str(max_input_prompt_tokens)+'_'+str(node_num)] = 0
+                inference_num_dict[method.__name__+'_'+str(max_input_prompt_tokens)+'_'+str(node_num)] = 0
     
     # 遍历每篇文章数据
     for index, data in tqdm(enumerate(selected_data), total=len(selected_data)):
@@ -820,69 +817,74 @@ def run(
 
         for method in methods:
             for max_input_prompt_tokens in max_input_prompt_tokens_list:
-                logging.info(f"Running method {method.__name__}")
-                logging.info(f"Budget left: {budget}")
-                # record start time
-                start_time = time.time()
+                for node_num in node_nums:
+                    logging.info(f"Running method {method.__name__}")
+                    logging.info(f"Input prompt tokens length {max_input_prompt_tokens}")
+                    logging.info(f"Node number {node_num}")
+                    logging.info(f"Budget left: {budget}")
+                    # record start time
+                    start_time = time.time()
 
-                if budget <= 0.0:
-                    logging.error(
-                        f"Budget has been depleted, stopping. Method {method.__name__} has not been run."
+                    if budget <= 0.0:
+                        logging.error(
+                            f"Budget has been depleted, stopping. Method {method.__name__} has not been run."
+                        )
+                        break
+                    if "internlm" in lm_name:
+                        lm = controller.InternLM2(
+                            "./graph_of_thoughts/controller/config.json",
+                            model_name=lm_name,
+                            cache=False,
+                        )
+                    elif "chatglm" in lm_name:
+                        lm = controller.ChatGLM(
+                            "./graph_of_thoughts/controller/config.json",
+                            model_name=lm_name,
+                            cache=False,
+                        )
+                    if method.__name__=="tot" or method.__name__=="got" or method.__name__=="dgot":
+                        operations_graph = method(node_num)
+                    else:
+                        operations_graph = method()
+                    executor = controller.Controller(
+                        lm,
+                        operations_graph,
+                        GenAbstractPrompter(max_input_prompt_tokens=max_input_prompt_tokens),
+                        GenAbstractParser(),
+                        {
+                            "origin_title": pmc_dict["article_title_text"],
+                            "origin_abstract": pmc_dict["abstract_text"],
+                            "origin_introduction": pmc_dict["introduction_text"],
+                            "origin_info": pmc_dict["sec_dict"],
+                            "reference_info": reference_title_abstract_dict,
+                            "current": "",
+                            "method": method.__name__,
+                        },
                     )
-                    break
-                if "internlm" in lm_name:
-                    lm = controller.InternLM2(
-                        "./graph_of_thoughts/controller/config.json",
-                        model_name=lm_name,
-                        cache=False,
+                    try:
+                        executor.run()
+                    except Exception as e:
+                        logging.error(f"Exception: {e}")
+
+                    # record end time
+                    end_time = time.time()
+                    execution_time = end_time - start_time
+                    inference_time_dict[method.__name__+'_'+str(max_input_prompt_tokens)+'_'+str(node_num)] += execution_time
+                    inference_num_dict[method.__name__+'_'+str(max_input_prompt_tokens)+'_'+str(node_num)] += 1
+
+                    path = os.path.join(
+                        os.path.dirname(__file__),
+                        folder_name,
+                        method.__name__+'_'+str(max_input_prompt_tokens)+'_'+str(node_num),
+                        f"{data_ids[0] + index}.json",
                     )
-                elif "chatglm" in lm_name:
-                    lm = controller.ChatGLM(
-                        "./graph_of_thoughts/controller/config.json",
-                        model_name=lm_name,
-                        cache=False,
-                    )
-                operations_graph = method()
-                executor = controller.Controller(
-                    lm,
-                    operations_graph,
-                    GenAbstractPrompter(max_input_prompt_tokens=max_input_prompt_tokens),
-                    GenAbstractParser(),
-                    {
-                        "origin_title": pmc_dict["article_title_text"],
-                        "origin_abstract": pmc_dict["abstract_text"],
-                        "origin_introduction": pmc_dict["introduction_text"],
-                        "origin_info": pmc_dict["sec_dict"],
-                        "reference_info": reference_title_abstract_dict,
-                        #"parts": set(),
-                        "current": "",
-                        "method": method.__name__,
-                    },
-                )
-                try:
-                    executor.run()
-                except Exception as e:
-                    logging.error(f"Exception: {e}")
+                    # for operation in operations_graph.operations:
+                    #     for thought in operation.thoughts:
+                    #         thought.state["parts"] = list(thought.state["parts"])
+                    # 输出结果与 gold summary 比较
 
-                # record end time
-                end_time = time.time()
-                execution_time = end_time - start_time
-                inference_time_dict[method.__name__+'_'+str(max_input_prompt_tokens)] += execution_time
-                inference_num_dict[method.__name__+'_'+str(max_input_prompt_tokens)] += 1
-
-                path = os.path.join(
-                    os.path.dirname(__file__),
-                    folder_name,
-                    method.__name__+'_'+str(max_input_prompt_tokens),
-                    f"{data_ids[0] + index}.json",
-                )
-                # for operation in operations_graph.operations:
-                #     for thought in operation.thoughts:
-                #         thought.state["parts"] = list(thought.state["parts"])
-                # 输出结果与 gold summary 比较
-
-                executor.output_graph(path)
-                budget -= lm.cost
+                    executor.output_graph(path)
+                    budget -= lm.cost
 
     # save inference time as .txt
     data_to_write = "approach_max_input_prompt_length time(s) inference_num time_per_inference\n"
@@ -955,18 +957,21 @@ if __name__ == "__main__":
     else:
         max_input_prompt_tokens_list = [2048]
 
+    if args.task == 'test_nodes_num':
+        node_nums = [3, 6, 12, 24]
+    else:
+        node_nums = [3]
+
     for max_input_prompt_tokens in max_input_prompt_tokens_list:
         generate_prompt_nums[str(max_input_prompt_tokens)] = 0
         cut_abstract_nums[str(max_input_prompt_tokens)] = 0
 
-    spent = run(samples, approaches, args.task, max_input_prompt_tokens_list, budget, args.model, data_path, save_pmc_folder, save_pm_folder)
+    spent, result_folder_path = run(samples, approaches, args.task, max_input_prompt_tokens_list, node_nums, budget, args.model, data_path, save_pmc_folder, save_pm_folder)
 
     logging.info(f"Spent {spent} out of {budget} budget.")
 
     # draw figure
     if args.task == 'test_prompt_length':
-        # need to update
-        folder_path = "results_DGoT/internlm2_got_test_prompt_length_2024-03-04_06-35-46"
-        r_1_distribution_dict, mean_r_1_list, mean_cost_dict = process_data_for_all_tasks(folder_path)
-        draw_line_box_bar_figure(r_1_distribution_dict, mean_r_1_list, mean_cost_dict)
+        r_1_distribution_dict, mean_r_1_list, mean_cost_dict = process_data_for_all_tasks(result_folder_path)
+        draw_line_box_bar_figure(r_1_distribution_dict, mean_r_1_list, mean_cost_dict, result_folder_path)
 
