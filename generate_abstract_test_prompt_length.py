@@ -556,7 +556,7 @@ def got(branch_factor: int) -> operations.GraphOfOperations:
 
     operations_graph.append_operation(operations.Generate(1, branch_factor))
     operations_graph.append_operation(operations.Score(branch_factor, False, rouge1_f_test_introduction))
-    keep_best = operations.KeepBestN(branch_factor, True)
+    keep_best = operations.KeepBestN(3, True)
     operations_graph.append_operation(keep_best)
     operations_graph.append_operation(operations.Aggregate(branch_factor))
     operations_graph.append_operation(operations.Score(branch_factor, False, rouge1_f_test_introduction))
@@ -955,10 +955,10 @@ if __name__ == "__main__":
     if args.task == 'test_prompt_length':
         max_input_prompt_tokens_list = [256, 512, 1024, 2048, 4096, 8192]
     else:
-        max_input_prompt_tokens_list = [2048]
+        max_input_prompt_tokens_list = [4096]
 
     if args.task == 'test_nodes_num':
-        node_nums = [3, 6, 12, 24]
+        node_nums = [3, 6, 9, 12, 15]
     else:
         node_nums = [3]
 
@@ -971,7 +971,7 @@ if __name__ == "__main__":
     logging.info(f"Spent {spent} out of {budget} budget.")
 
     # draw figure
-    if args.task == 'test_prompt_length':
+    if args.task == 'test_prompt_length' or args.task == 'test_nodes_num':
         r_1_distribution_dict, mean_r_1_list, mean_cost_dict = process_data_for_all_tasks(result_folder_path)
         draw_line_box_bar_figure(r_1_distribution_dict, mean_r_1_list, mean_cost_dict, result_folder_path)
 
