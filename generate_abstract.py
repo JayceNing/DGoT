@@ -842,6 +842,12 @@ def run(
                             model_name=lm_name,
                             cache=False,
                         )
+                    elif "chatgpt" in lm_name:
+                        lm = controller.ChatGPT(
+                            "./graph_of_thoughts/controller/config.json",
+                            model_name=lm_name,
+                            cache=False,
+                        )
                     if method.__name__=="tot" or method.__name__=="got" or method.__name__=="dgot":
                         operations_graph = method(node_num)
                     else:
@@ -948,7 +954,10 @@ if __name__ == "__main__":
     budget = 3000000000
     samples = [item for item in range(int(args.begin), int(args.end))]
     if args.task == 'default':
-        approaches = [io, cot, tot, got, dgot]
+        if args.mode == 'test':
+            approaches = [io, cot, tot, got, dgot]
+        else:
+            approaches = [got]
     else:
         approaches = [got]
     
@@ -972,6 +981,6 @@ if __name__ == "__main__":
 
     # draw figure
     if args.task == 'test_prompt_length' or args.task == 'test_nodes_num':
-        r_1_distribution_dict, mean_r_1_list, mean_cost_dict = process_data_for_all_tasks(result_folder_path)
+        r_1_distribution_dict, _, mean_r_1_list, mean_cost_dict = process_data_for_all_tasks(result_folder_path)
         draw_line_box_bar_figure(r_1_distribution_dict, mean_r_1_list, mean_cost_dict, result_folder_path)
 

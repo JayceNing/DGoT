@@ -60,7 +60,7 @@ class ChatGPT(AbstractLanguageModel):
         if self.api_key == "":
             raise ValueError("OPENAI_API_KEY is not set")
         openai.api_key = self.api_key
-        openai.api_base = "https://api.132999.xyz/v1"
+        # openai.api_base = "https://api.132999.xyz/v1"
 
     def query(self, query: str, num_responses: int = 1) -> Dict:
         """
@@ -80,7 +80,7 @@ class ChatGPT(AbstractLanguageModel):
             response = self.chat([{"role": "user", "content": query}], num_responses)
         else:
             response = []
-            next_try = num_responses
+            next_try = 1  # set to single query to satisfy score function
             total_num_attempts = num_responses
             while num_responses > 0 and total_num_attempts > 0:
                 try:

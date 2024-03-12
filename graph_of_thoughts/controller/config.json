@@ -4,10 +4,20 @@
         "prompt_token_cost": 0.0015,
         "response_token_cost": 0.002,
         "temperature": 0.7,
-        "max_tokens": 1536,
+        "max_tokens": 4096,
         "stop": null,
         "organization": "",
-        "api_key": "sk-1eJ7lggyvtqLt4Bs884d00F8096f4f34Ad95D7Ec3e97EaEc"
+        "api_key": "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"
+    },
+    "chatgpt4" : {
+        "model_id": "gpt-4",
+        "prompt_token_cost": 0.03,
+        "response_token_cost": 0.06,
+        "temperature": 0.7,
+        "max_tokens": 4096,
+        "stop": null,
+        "organization": "",
+        "api_key": "sk-azVB6N1o1S3CjKNA4722F57f9b774eFcAfD106A1EaFd57F4"
     },
     "chatglm" : {
         "model_id": "chatglm2-6b",
@@ -64,16 +74,6 @@
         "url": "http://0.0.0.0:23333",
         "temperature": 0.7,
         "top_p": 0.7
-    },
-    "chatgpt4" : {
-        "model_id": "gpt-4",
-        "prompt_token_cost": 0.03,
-        "response_token_cost": 0.06,
-        "temperature": 1.0,
-        "max_tokens": 4096,
-        "stop": null,
-        "organization": "",
-        "api_key": ""
     },
     "llama7b-hf" : {
         "model_id": "Llama-2-7b-chat-hf",
