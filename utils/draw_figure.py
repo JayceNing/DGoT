@@ -254,25 +254,34 @@ def cal_transformation_score(folder_path):
     max_mean_aggregate = sum(max_aggregate_score) / len(max_aggregate_score)
     max_mean_improve = sum(max_improve_score) / len(max_improve_score)
     var_max_generate = statistics.variance(max_generate_score)
-    gumbel_25 = cal_gumbel(max_mean_generate, var_max_generate, 0.25)
-    gumbel_50 = cal_gumbel(max_mean_generate, var_max_generate, 0.5)
-    gumbel_75 = cal_gumbel(max_mean_generate, var_max_generate, 0.75)
+    generate_gumbel_25 = cal_gumbel(max_mean_generate, var_max_generate, 0.25)
+    generate_gumbel_50 = cal_gumbel(max_mean_generate, var_max_generate, 0.5)
+    generate_gumbel_75 = cal_gumbel(max_mean_generate, var_max_generate, 0.75)
+    var_max_aggregate = statistics.variance(max_aggregate_score)
+    aggregate_gumbel_25 = cal_gumbel(max_mean_aggregate, var_max_aggregate, 0.25)
+    aggregate_gumbel_50 = cal_gumbel(max_mean_aggregate, var_max_aggregate, 0.5)
+    aggregate_gumbel_75 = cal_gumbel(max_mean_aggregate, var_max_aggregate, 0.75)
+    var_max_improve = statistics.variance(max_improve_score)
+    improve_gumbel_25 = cal_gumbel(max_mean_improve, var_max_improve, 0.25)
+    improve_gumbel_50 = cal_gumbel(max_mean_improve, var_max_improve, 0.5)
+    improve_gumbel_75 = cal_gumbel(max_mean_improve, var_max_improve, 0.75)
 
     file_name = os.path.join(folder_path.split('/')[1], folder_path.split('/')[2], folder_path.split('/')[3] + "_transformation_score_overview.txt")
     # save transformation score to .txt
     data_to_write = "mean_generate mean_aggregate mean_improve max_mean_generate max_mean_aggregate max_mean_improve\n"
     data_to_write += f"{mean_generate} {mean_aggregate} {mean_improve} {max_mean_generate} {max_mean_aggregate} {max_mean_improve}\n"
-    data_to_write += "gumbel_25\n"
-    data_to_write += f"{gumbel_25}\n"
-    data_to_write += "gumbel_50\n"
-    data_to_write += f"{gumbel_50}\n"
-    data_to_write += "gumbel_75\n"
-    data_to_write += f"{gumbel_75}\n"
+    data_to_write += "generate gumbel_25 gumbel_50 gumbel_75\n"
+    data_to_write += f"{generate_gumbel_25} {generate_gumbel_50} {generate_gumbel_75}\n"
+    data_to_write += "aggregate gumbel_25 gumbel_50 gumbel_75\n"
+    data_to_write += f"{aggregate_gumbel_25} {aggregate_gumbel_50} {aggregate_gumbel_75}\n"
+    data_to_write += "improve gumbel_25 gumbel_50 gumbel_75\n"
+    data_to_write += f"{improve_gumbel_25} {improve_gumbel_50} {improve_gumbel_75}\n"
+
     # write in txt
     with open(file_name, "w") as file:
         file.write(data_to_write)
 
-    return generate_score, aggregate_score, improve_score, max_generate_score, max_aggregate_score, max_improve_score, [gumbel_25, gumbel_50, gumbel_75]
+    return generate_score, aggregate_score, improve_score, max_generate_score, max_aggregate_score, max_improve_score, [generate_gumbel_25, generate_gumbel_50, generate_gumbel_75]
 
 def draw_transformation_score_figure(generate_score, aggregate_score, improve_score, mode, folder_path, gumbel_thresh=None):
     sns.set_theme(style="whitegrid")

@@ -573,7 +573,7 @@ def got(branch_factor: int) -> operations.GraphOfOperations:
     return operations_graph
 
 
-def dgot(branch_factor: int) -> operations.GraphOfOperations:
+def dgot(branch_factor: int, thresh: List[float]) -> operations.GraphOfOperations:
     """
     Generates the Graph of Operations for the GoT method, where generate thoughts
     are merged.
@@ -586,18 +586,20 @@ def dgot(branch_factor: int) -> operations.GraphOfOperations:
     0.31990248098859286
     0.32433038825757593
     """
+    if thresh == None:
+        thresh = [0.29, 0.31, 0.32]
     operations_graph = operations.GraphOfOperations()
 
-    operations_graph.append_operation(operations.DGenerateScore(1, branch_factor, rouge1_f_test_introduction, 0.29))
+    operations_graph.append_operation(operations.DGenerateScore(1, branch_factor, rouge1_f_test_introduction, thresh[0]))
     operations_graph.append_operation(operations.Score(branch_factor, False, rouge1_f_test_introduction))
     keep_best = operations.KeepBestN(branch_factor, True)
     operations_graph.append_operation(keep_best)
-    operations_graph.append_operation(operations.DAggregate(branch_factor, rouge1_f_test_introduction, 0.31, 0.29))
+    operations_graph.append_operation(operations.DAggregate(branch_factor, rouge1_f_test_introduction, thresh[1], thresh[0]))
     operations_graph.append_operation(operations.Score(branch_factor, False, rouge1_f_test_introduction))
     keep_best2 = operations.KeepBestN(1, True)
     keep_best2.add_predecessor(keep_best)
     operations_graph.append_operation(keep_best2)
-    operations_graph.append_operation(operations.DGenerateScore(1, branch_factor, rouge1_f_test_introduction, 0.32))
+    operations_graph.append_operation(operations.DGenerateScore(1, branch_factor, rouge1_f_test_introduction, thresh[2]))
     operations_graph.append_operation(operations.Score(branch_factor, False, rouge1_f_test_introduction))
     keep_best3 = operations.KeepBestN(1, True)
     keep_best3.add_predecessor(keep_best2)
@@ -714,6 +716,7 @@ def dgot_p3() -> operations.GraphOfOperations:
 def run(
     data_ids: List[int],
     methods: List[Callable[[], operations.GraphOfOperations]],
+    thresh: List[float],
     task: str,
     max_input_prompt_tokens_list: List[int],
     node_nums: List[int],
@@ -848,8 +851,10 @@ def run(
                             model_name=lm_name,
                             cache=False,
                         )
-                    if method.__name__=="tot" or method.__name__=="got" or method.__name__=="dgot":
+                    if method.__name__=="tot" or method.__name__=="got":
                         operations_graph = method(node_num)
+                    elif method.__name__=="dgot":
+                        operations_graph = method(node_num, thresh)
                     else:
                         operations_graph = method()
                     executor = controller.Controller(
@@ -955,6 +960,7 @@ if __name__ == "__main__":
     samples = [item for item in range(int(args.begin), int(args.end))]
     if args.task == 'default':
         if args.mode == 'test':
+            thresh = [args.thresh_g, args.thresh_a, args.thresh_i]
             approaches = [io, cot, tot, got, dgot]
         else:
             approaches = [got]
@@ -975,12 +981,12 @@ if __name__ == "__main__":
         generate_prompt_nums[str(max_input_prompt_tokens)] = 0
         cut_abstract_nums[str(max_input_prompt_tokens)] = 0
 
-    spent, result_folder_path = run(samples, approaches, args.task, max_input_prompt_tokens_list, node_nums, budget, args.model, data_path, save_pmc_folder, save_pm_folder)
+    spent, result_folder_path = run(samples, approaches, thresh, args.task, max_input_prompt_tokens_list, node_nums, budget, args.model, data_path, save_pmc_folder, save_pm_folder)
 
     logging.info(f"Spent {spent} out of {budget} budget.")
 
     # draw figure
-    if args.task == 'test_prompt_length' or args.task == 'test_nodes_num':
-        r_1_distribution_dict, _, mean_r_1_list, mean_cost_dict = process_data_for_all_tasks(result_folder_path)
-        draw_line_box_bar_figure(r_1_distribution_dict, mean_r_1_list, mean_cost_dict, result_folder_path)
+    # if args.task == 'test_prompt_length' or args.task == 'test_nodes_num':
+    #     r_1_distribution_dict, _, mean_r_1_list, mean_cost_dict = process_data_for_all_tasks(result_folder_path)
+    #     draw_line_box_bar_figure(r_1_distribution_dict, mean_r_1_list, mean_cost_dict, result_folder_path)
 
