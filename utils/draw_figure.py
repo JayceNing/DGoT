@@ -2,6 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import json
+import seaborn as sns
+import pandas as pd
+import statistics
+import math
 
 def read_each_task_results(folder_path_list):
     r_1 = []
@@ -205,3 +209,121 @@ def draw_double_line_box_bar_figure(r_1_distribution_dict, r_i_distribution_dict
     plt.savefig(os.path.join(folder_path, 'r_1_r_i_distribution_and_mean_cost_figure.png'))
     plt.show()
 
+def cal_gumbel(mean, var, p):
+    mu = mean
+    beta = np.sqrt(6*var)/np.pi
+    thresh = mu - beta * math.log(-math.log(p))
+    return thresh
+
+def cal_transformation_score(folder_path):
+    generate_score = []
+    aggregate_score = []
+    improve_score = []
+    max_generate_score = []
+    max_aggregate_score = []
+    max_improve_score = []
+
+    for foldername, subfolders, filenames in os.walk(folder_path):
+        # 打印文件
+        for filename in filenames:
+            #print('文件：' + filename)
+            path = folder_path + filename
+        
+            with open(path, 'r') as json_file:
+                data = json.load(json_file)
+
+            try:
+                max_generate_score.append(max(data[1]["scores"]))
+                max_aggregate_score.append(max(data[4]["scores"]))
+                max_improve_score.append(max(data[7]["scores"]))
+                for i in data[1]["scores"]:
+                    generate_score.append(i)
+                for i in data[4]["scores"]:
+                    aggregate_score.append(i)
+                for i in data[7]["scores"]:
+                    improve_score.append(i)
+                    
+                avliable_num += 1
+            except:
+                pass
+                
+    mean_generate = sum(generate_score) / len(generate_score)
+    mean_aggregate = sum(aggregate_score) / len(aggregate_score)
+    mean_improve = sum(improve_score) / len(improve_score)
+    max_mean_generate = sum(max_generate_score) / len(max_generate_score)
+    max_mean_aggregate = sum(max_aggregate_score) / len(max_aggregate_score)
+    max_mean_improve = sum(max_improve_score) / len(max_improve_score)
+    var_max_generate = statistics.variance(max_generate_score)
+    gumbel_25 = cal_gumbel(max_mean_generate, var_max_generate, 0.25)
+    gumbel_50 = cal_gumbel(max_mean_generate, var_max_generate, 0.5)
+    gumbel_75 = cal_gumbel(max_mean_generate, var_max_generate, 0.75)
+
+    file_name = os.path.join(folder_path.split('/')[1], folder_path.split('/')[2], folder_path.split('/')[3] + "_transformation_score_overview.txt")
+    # save transformation score to .txt
+    data_to_write = "mean_generate mean_aggregate mean_improve max_mean_generate max_mean_aggregate max_mean_improve\n"
+    data_to_write += f"{mean_generate} {mean_aggregate} {mean_improve} {max_mean_generate} {max_mean_aggregate} {max_mean_improve}\n"
+    data_to_write += "gumbel_25\n"
+    data_to_write += f"{gumbel_25}\n"
+    data_to_write += "gumbel_50\n"
+    data_to_write += f"{gumbel_50}\n"
+    data_to_write += "gumbel_75\n"
+    data_to_write += f"{gumbel_75}\n"
+    # write in txt
+    with open(file_name, "w") as file:
+        file.write(data_to_write)
+
+    return generate_score, aggregate_score, improve_score, max_generate_score, max_aggregate_score, max_improve_score, [gumbel_25, gumbel_50, gumbel_75]
+
+def draw_transformation_score_figure(generate_score, aggregate_score, improve_score, mode, folder_path, gumbel_thresh=None):
+    sns.set_theme(style="whitegrid")
+
+    # 自定义三类数据
+    data_category1 = generate_score
+    data_category2 = aggregate_score
+    data_category3 = improve_score
+
+    mean_g = sum(data_category1)/len(data_category1)
+    mean_a = sum(data_category2)/len(data_category2)
+    mean_i = sum(data_category3)/len(data_category3)
+
+    # 构造数据框
+    import pandas as pd
+    data = pd.DataFrame({
+        'Score': ['Generate'] * len(data_category1) +
+                    ['Aggregate'] * len(data_category2) +
+                    ['Improve'] * len(data_category3),
+        'Value': data_category1 + data_category2 + data_category3
+    })
+
+    # 创建分布图
+    plt.figure(figsize=(7, 4))
+    sns.histplot(data=data, x='Value', stat='percent', hue='Score', multiple="layer", kde=True, palette='Set2')
+
+    plt.xlabel('Score')
+    plt.ylabel('Frequency (in percentage)')
+    plt.xlim(0, 1)
+    if mode == "max":
+        plt.axvline(x=gumbel_thresh[0], color=(102/255, 194/255, 165/255), linestyle='--', linewidth=2)
+        plt.text(gumbel_thresh[0], 1, 'Gumbel 25% Thresh = '+ "{:.2f}".format(gumbel_thresh[0]), horizontalalignment='center', fontsize=6, rotation='vertical', color="green")
+        plt.axvline(x=gumbel_thresh[1], color=(102/255, 194/255, 165/255), linestyle='--', linewidth=2)
+        plt.text(gumbel_thresh[1], 1, 'Gumbel 50% Thresh = '+ "{:.2f}".format(gumbel_thresh[1]), horizontalalignment='center', fontsize=6, rotation='vertical', color="green")
+        plt.axvline(x=gumbel_thresh[2], color=(102/255, 194/255, 165/255), linestyle='--', linewidth=2)
+        plt.text(gumbel_thresh[2], 1, 'Gumbel 75% Thresh = '+ "{:.2f}".format(gumbel_thresh[2]), horizontalalignment='center', fontsize=6, rotation='vertical', color="green")
+        plt.title('Distribution of Three Transformation\'s Max Score')
+        plt.savefig(os.path.join(folder_path.split('/')[1], folder_path.split('/')[2], folder_path.split('/')[3] + '_transformation_max_score_distribution.png'))
+        print("Save to " + os.path.join(folder_path.split('/')[1], folder_path.split('/')[2], folder_path.split('/')[3] + '_transformation_max_score_distribution.png'))
+    else:
+        plt.axvline(x=mean_g, color=(102/255, 194/255, 165/255), linestyle='-', linewidth=2)
+        plt.text(mean_g, 0.6, 'Simple Mean Thresh = '+ "{:.2f}".format(mean_g), horizontalalignment='center', fontsize=6, rotation='vertical', color="green")
+        plt.axvline(x=mean_a, color=(252/255, 141/255, 98/255), linestyle='-', linewidth=2)
+        plt.axvline(x=mean_i, color=(141/255, 160/255, 203/255), linestyle='--', linewidth=2)
+        plt.title('Distribution of Three Transformation\'s Score')
+        plt.savefig(os.path.join(folder_path.split('/')[1], folder_path.split('/')[2], folder_path.split('/')[3] + '_transformation_score_distribution.png'))
+        print("Save to " + os.path.join(folder_path.split('/')[1], folder_path.split('/')[2], folder_path.split('/')[3] + '_transformation_score_distribution.png'))
+    # 显示图形
+    plt.show()
+
+def cal_and_draw_transformation_score(folder_path):
+    generate_score, aggregate_score, improve_score, max_generate_score, max_aggregate_score, max_improve_score, gumbel_thresh = cal_transformation_score(folder_path)
+    draw_transformation_score_figure(generate_score, aggregate_score, improve_score, "normal", folder_path)
+    draw_transformation_score_figure(max_generate_score, max_aggregate_score, max_improve_score, "max", folder_path, gumbel_thresh)
