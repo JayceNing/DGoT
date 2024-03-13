@@ -944,6 +944,9 @@ if __name__ == "__main__":
     parser.add_argument('--mode', type=str, default="test", help='train or test')
     parser.add_argument('--model', type=str, default="internlm2", help='model name')
     parser.add_argument('--task', type=str, default='default', help='0.default, 1.test_prompt_length, 2.test_nodes_num')
+    parser.add_argument('--thresh_g', type=float, default=0.29, help='threshold for dgot generate transformation')
+    parser.add_argument('--thresh_a', type=float, default=0.31, help='threshold for dgot aggregate transformation')
+    parser.add_argument('--thresh_i', type=float, default=0.32, help='threshold for dgot inprove transformation')
     args = parser.parse_args()
 
     mode = args.mode
@@ -958,9 +961,9 @@ if __name__ == "__main__":
 
     budget = 3000000000
     samples = [item for item in range(int(args.begin), int(args.end))]
+    thresh = [args.thresh_g, args.thresh_a, args.thresh_i]
     if args.task == 'default':
         if args.mode == 'test':
-            thresh = [args.thresh_g, args.thresh_a, args.thresh_i]
             approaches = [io, cot, tot, got, dgot]
         else:
             approaches = [got]
@@ -986,7 +989,7 @@ if __name__ == "__main__":
     logging.info(f"Spent {spent} out of {budget} budget.")
 
     # draw figure
-    # if args.task == 'test_prompt_length' or args.task == 'test_nodes_num':
-    #     r_1_distribution_dict, _, mean_r_1_list, mean_cost_dict = process_data_for_all_tasks(result_folder_path)
-    #     draw_line_box_bar_figure(r_1_distribution_dict, mean_r_1_list, mean_cost_dict, result_folder_path)
+    if args.task == 'test_prompt_length' or args.task == 'test_nodes_num':
+        r_1_distribution_dict, _, mean_r_1_list, mean_cost_dict = process_data_for_all_tasks(result_folder_path)
+        draw_line_box_bar_figure(r_1_distribution_dict, mean_r_1_list, mean_cost_dict, result_folder_path)
 
