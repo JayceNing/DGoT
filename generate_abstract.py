@@ -842,6 +842,7 @@ if __name__ == "__main__":
     parser.add_argument('--thresh_g', type=float, default=0.29, help='threshold for dgot generate transformation')
     parser.add_argument('--thresh_a', type=float, default=0.31, help='threshold for dgot aggregate transformation')
     parser.add_argument('--thresh_i', type=float, default=0.32, help='threshold for dgot inprove transformation')
+    parser.add_argument('--prompt_length', type=int, default=4096, help='Length of input prompt')
     args = parser.parse_args()
 
     mode = args.mode
@@ -868,7 +869,7 @@ if __name__ == "__main__":
     if args.task == 'test_prompt_length':
         max_input_prompt_tokens_list = [256, 512, 1024, 2048, 4096, 8192]
     else:
-        max_input_prompt_tokens_list = [4096]
+        max_input_prompt_tokens_list = [args.prompt_length]
 
     if args.task == 'test_nodes_num':
         node_nums = [3, 6, 9, 12, 15]
