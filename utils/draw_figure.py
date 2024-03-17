@@ -188,14 +188,8 @@ def draw_double_line_box_bar_figure(r_1_distribution_dict, r_i_distribution_dict
 
     xtick_labels = []
     # 设置x轴刻度标签
-    if "test_prompt_length" in folder_path:
-        for key in sorted_key:
-            xtick_labels.append(key.split(" ")[0] + " " + key.split(" ")[1])
-    elif "test_nodes_num" in folder_path:
-        for key in sorted_key:
-            xtick_labels.append(key.split(" ")[0] + " " + key.split(" ")[2])
-    else:
-        xtick_labels = sorted_key
+    for key in sorted_key:
+        xtick_labels.append("k = " + key.split(" ")[2])
 
     ax1.set_xticks(np.arange(num_categories) * 2 + bar_width)
     ax1.set_xticklabels(xtick_labels)
