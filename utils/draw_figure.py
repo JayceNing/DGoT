@@ -6,8 +6,10 @@ import seaborn as sns
 import pandas as pd
 import statistics
 import math
+from scipy.stats import gumbel_r
+from .utils import cal_rouge_f
 
-def read_each_task_results(folder_path_list):
+def read_each_task_results(folder_path_list, task_category):
     r_1 = []
     r_2 = []
     r_L = []
@@ -28,10 +30,25 @@ def read_each_task_results(folder_path_list):
                     data = json.load(json_file)
         
                 try:
-                    r_1.append(data[-2]['thoughts'][-1]['rouge']['rouge_1_f_score'])
-                    r_2.append(data[-2]['thoughts'][-1]['rouge']['rouge_2_f_score'])
-                    r_L.append(data[-2]['thoughts'][-1]['rouge']['rouge_l_f_score'])
-                    r_i.append(data[-3]['scores'][0])
+                    if "cot" in folder_path.split("/")[-1]:
+                        generate_result = data[-2]['thoughts'][-1]['current']
+                        gold_summary = data[-2]['thoughts'][-1]['origin_abstract']
+                        rouge1f, rouge2f, rougelf = cal_rouge_f(gold_summary, generate_result)
+                        r_1.append(rouge1f)
+                        r_2.append(rouge2f)
+                        r_L.append(rougelf)
+                    else:
+                        r_1.append(data[-2]['thoughts'][-1]['rouge']['rouge_1_f_score'])
+                        r_2.append(data[-2]['thoughts'][-1]['rouge']['rouge_2_f_score'])
+                        r_L.append(data[-2]['thoughts'][-1]['rouge']['rouge_l_f_score'])
+                    if task_category == "with_r_i":
+                        r_i.append(data[-3]['scores'][0])
+                    else:
+                        generate_result = data[-2]['thoughts'][-1]['current']
+                        origin_introduction = data[-2]['thoughts'][-1]['origin_introduction']
+                        rouge1f, rouge2f, rougelf = cal_rouge_f(origin_introduction, generate_result)
+                        r_i.append(rouge1f)
+
                     prompt_tokens = data[-1]["prompt_tokens"]
                     completion_tokens = data[-1]["completion_tokens"]
                     cost = data[-1]["cost"]
@@ -61,10 +78,11 @@ def process_data_for_all_tasks(folder_path):
     mean_cost_dict = {}
     
     # save process result to .txt
-    data_to_write = "task_name r_1 r_2 r_L r_i mean_prompt_tokens mean_completion_tokens mean_cost\n"
+    data_to_write = ""
     mean_r_1_list = []
     for foldername, subfolders, filenames in os.walk(folder_path):
         for subfolder in subfolders:
+            task_category = "without_r_i"
             if len(subfolder.split("_"))>1:
                 if subfolder.split("_")[0] == "io":
                     task_name = subfolder.replace("io", "IO").replace("_", " ")
@@ -74,16 +92,20 @@ def process_data_for_all_tasks(folder_path):
                     task_name = subfolder.replace("tot", "ToT").replace("_", " ")
                 elif subfolder.split("_")[0] == "got":
                     task_name = subfolder.replace("got", "GoT").replace("_", " ")
+                    task_category = "with_r_i"
                 elif subfolder.split("_")[0] == "dgot":
                     task_name = subfolder.replace("dgot", "DGoT").replace("_", " ")
+                    task_category = "with_r_i"
             else:
                 task_name = subfolder
             print("processing " + task_name)
-            r_1, r_2, r_L, r_i, mean_r_1, mean_r_2, mean_r_L, mean_r_i, mean_prompt_tokens, mean_completion_tokens, mean_cost = read_each_task_results([os.path.join(folder_path, subfolder)])
+            #if task_category == "with_r_i":
+            r_1, r_2, r_L, r_i, mean_r_1, mean_r_2, mean_r_L, mean_r_i, mean_prompt_tokens, mean_completion_tokens, mean_cost = read_each_task_results([os.path.join(folder_path, subfolder)], task_category)
+            data_to_write += "task_name r_1 r_2 r_L r_i mean_prompt_tokens mean_completion_tokens mean_cost\n"
             data_to_write += f"{task_name} {mean_r_1} {mean_r_2} {mean_r_L} {mean_r_i} {mean_prompt_tokens} {mean_completion_tokens} {mean_cost}\n"
+            r_i_distribution_dict[task_name] = r_i
             mean_r_1_list.append(mean_r_1)
             r_1_distribution_dict[task_name] = r_1
-            r_i_distribution_dict[task_name] = r_i
             mean_cost_dict[task_name] = mean_cost
     file_name = os.path.join(folder_path, "results_overview.txt")
     # write in txt
@@ -145,6 +167,66 @@ def draw_line_box_bar_figure(r_1_distribution_dict, mean_r_1_list, mean_cost_dic
     plt.savefig(os.path.join(folder_path, 'r_1_distribution_and_mean_cost_figure.png'))
     plt.show()
 
+def draw_main_result_figure(r_1_distribution_dict, r_i_distribution_dict, mean_r_1_list, mean_cost_dict, folder_path):
+    # 创建箱线图的坐标轴
+    fig, ax1 = plt.subplots(figsize=(8, 6))
+    # 创建柱状图的坐标轴
+    ax2 = ax1.twinx()
+    # 使用sorted函数和lambda表达式按值排序字典的键  
+    order = ['IO', 'CoT', 'ToT', 'GoT', 'DGoT']
+    # 使用sorted函数和lambda表达式按照特定顺序排序字典的键
+    sorted_key = sorted(mean_cost_dict.keys(), key=lambda x: order.index(x.split(' ')[0]))
+    bar_data = []
+    line_box_data_r_i = []
+    line_box_data_r_1 = []
+    # 输出排序后的键列表  
+    for key in sorted_key:
+        bar_data.append(mean_cost_dict[key])
+        line_box_data_r_i.append(r_i_distribution_dict[key])
+        line_box_data_r_1.append(r_1_distribution_dict[key])
+
+    r1_mean_for_label_position = sum(mean_r_1_list)/len(mean_r_1_list)
+    print(r1_mean_for_label_position)
+
+    num_categories = len(r_1_distribution_dict)
+    # 绘制柱状图
+    bar_width = 0.6
+    x = np.arange(num_categories) *2 + bar_width
+    ax2.bar(x, bar_data, width=bar_width * 2.5, alpha=0.7, color=(127/255, 127/255, 255/255), label='Mean Cost')
+    # label = ax1.text(10.30, 0.66, "the lower the better", ha='center', va='center', fontsize=12, fontweight='bold',  rotation=90, color=(127/255, 127/255, 255/255))
+    ax2.set_ylabel('Mean Cost', color=(127/255, 127/255, 255/255))
+
+    # 指定箱线图的箱体和中位线颜色
+    boxprops = dict(facecolor='lightyellow', color='black')
+    medianprops = dict(linestyle='', linewidth=0)
+
+    # 绘制第一组箱线图
+    ax1.boxplot(line_box_data_r_i, positions=np.arange(num_categories) * 2 + 0.2, widths=0.6, vert=True, patch_artist=True, boxprops=boxprops, medianprops=medianprops, showmeans=True)
+
+    boxprops = dict(facecolor='white', color='black')
+    # 绘制第二组箱线图
+    ax1.boxplot(line_box_data_r_1, positions=np.arange(num_categories) * 2 + 1, widths=0.6, vert=True, patch_artist=True, boxprops=boxprops, medianprops=medianprops, showmeans=True)
+
+    # label = ax1.text(-0.94, 0.64, "the higher the better", ha='center', va='center', fontsize=12, fontweight='bold',  rotation=90)
+    ax1.set_ylabel('Socre')
+
+    xtick_labels = []
+    # 设置x轴刻度标签
+    for key in sorted_key:
+        xtick_labels.append(key.split(" ")[0])
+
+    ax1.set_xticks(np.arange(num_categories) * 2 + bar_width)
+    ax1.set_xticklabels(xtick_labels)
+    # 设置y轴刻度颜色
+    ax2.tick_params(axis='y', colors=(127/255, 127/255, 255/255))  # 这里将y轴刻度颜色设置为蓝色
+    # 显示图例
+    ax2.legend()
+    # 去除白边
+    plt.tight_layout()
+
+    plt.savefig(os.path.join(folder_path, 'r_1_r_i_distribution_and_mean_cost_figure.png'))
+    plt.show()
+
 def draw_double_line_box_bar_figure(r_1_distribution_dict, r_i_distribution_dict, mean_r_1_list, mean_cost_dict, folder_path):
     # 创建箱线图的坐标轴
     fig, ax1 = plt.subplots(figsize=(8, 6))
@@ -204,8 +286,9 @@ def draw_double_line_box_bar_figure(r_1_distribution_dict, r_i_distribution_dict
     plt.show()
 
 def cal_gumbel(mean, var, p):
-    mu = mean
+    # mu = mean
     beta = np.sqrt(6*var)/np.pi
+    mu = mean - 0.577215*beta
     thresh = mu - beta * math.log(-math.log(p))
     return thresh
 
@@ -289,6 +372,7 @@ def draw_transformation_score_figure(generate_score, aggregate_score, improve_sc
     mean_a = sum(data_category2)/len(data_category2)
     mean_i = sum(data_category3)/len(data_category3)
 
+
     # 构造数据框
     import pandas as pd
     data = pd.DataFrame({
@@ -302,10 +386,45 @@ def draw_transformation_score_figure(generate_score, aggregate_score, improve_sc
     plt.figure(figsize=(7, 4))
     sns.histplot(data=data, x='Value', stat='percent', hue='Score', multiple="layer", kde=True, palette='Set2')
 
-    plt.xlabel('Score')
     plt.ylabel('Frequency (in percentage)')
     plt.xlim(0, 1)
     if mode == "max":
+        plt.xlabel('Max Score in One Transformation')
+        # 获取y轴最大值
+        ymin, ymax = plt.ylim()
+        var_g = statistics.variance(generate_score)
+        var_a = statistics.variance(aggregate_score)
+        var_i = statistics.variance(improve_score)
+
+        beta = np.sqrt(6*var_g)/np.pi  # 尺度参数
+        mu = mean_g - 0.577215*beta # 位置参数
+
+        # 生成一些数据点
+        x_1 = np.linspace(gumbel_r.ppf(0.01, loc=mu, scale=beta), gumbel_r.ppf(0.99, loc=mu, scale=beta), 1000)
+        # 计算概率密度函数值
+        pdf_1 = gumbel_r.pdf(x_1, loc=mu, scale=beta)
+        #pdf_1 = pdf_1 / max(pdf_1) * ymax * 0.8
+
+        beta = np.sqrt(6*var_a)/np.pi  # 尺度参数
+        mu = mean_a - 0.577215*beta # 位置参数
+        # 生成一些数据点
+        x_2 = np.linspace(gumbel_r.ppf(0.01, loc=mu, scale=beta), gumbel_r.ppf(0.99, loc=mu, scale=beta), 1000)
+        # 计算概率密度函数值
+        pdf_2 = gumbel_r.pdf(x_2, loc=mu, scale=beta)
+        #pdf_2 = pdf_2 / max(pdf_2) * ymax * 0.8
+
+        beta = np.sqrt(6*var_i)/np.pi  # 尺度参数
+        mu = mean_i - 0.577215*beta # 位置参数
+        # 生成一些数据点
+        x_3 = np.linspace(gumbel_r.ppf(0.01, loc=mu, scale=beta), gumbel_r.ppf(0.99, loc=mu, scale=beta), 1000)
+        # 计算概率密度函数值
+        pdf_3 = gumbel_r.pdf(x_3, loc=mu, scale=beta)
+        #pdf_3 = pdf_3 / max(pdf_3) * ymax * 0.8
+
+        plt.plot(x_1, pdf_1, label='Gumbel PDF max g', linestyle='--', color=(102/255, 194/255, 165/255))
+        plt.plot(x_2, pdf_2, label='Gumbel PDF max a', linestyle='--', color=(252/255, 141/255, 98/255))
+        plt.plot(x_3, pdf_3, label='Gumbel PDF max i', linestyle='--', color=(141/255, 160/255, 203/255))
+
         plt.axvline(x=gumbel_thresh[0], color=(102/255, 194/255, 165/255), linestyle='--', linewidth=2)
         plt.text(gumbel_thresh[0], 1, 'Gumbel 25% Thresh = '+ "{:.2f}".format(gumbel_thresh[0]), horizontalalignment='center', fontsize=6, rotation='vertical', color="green")
         plt.axvline(x=gumbel_thresh[1], color=(102/255, 194/255, 165/255), linestyle='--', linewidth=2)
@@ -313,14 +432,19 @@ def draw_transformation_score_figure(generate_score, aggregate_score, improve_sc
         plt.axvline(x=gumbel_thresh[2], color=(102/255, 194/255, 165/255), linestyle='--', linewidth=2)
         plt.text(gumbel_thresh[2], 1, 'Gumbel 75% Thresh = '+ "{:.2f}".format(gumbel_thresh[2]), horizontalalignment='center', fontsize=6, rotation='vertical', color="green")
         plt.title('Distribution of Three Transformation\'s Max Score')
+        # 去除白边
+        plt.tight_layout()
         plt.savefig(os.path.join(folder_path.split('/')[1], folder_path.split('/')[2], folder_path.split('/')[3] + '_transformation_max_score_distribution.png'))
         print("Save to " + os.path.join(folder_path.split('/')[1], folder_path.split('/')[2], folder_path.split('/')[3] + '_transformation_max_score_distribution.png'))
     else:
+        plt.xlabel('Score')
         plt.axvline(x=mean_g, color=(102/255, 194/255, 165/255), linestyle='-', linewidth=2)
         plt.text(mean_g, 0.6, 'Simple Mean Thresh = '+ "{:.2f}".format(mean_g), horizontalalignment='center', fontsize=6, rotation='vertical', color="green")
         plt.axvline(x=mean_a, color=(252/255, 141/255, 98/255), linestyle='-', linewidth=2)
         plt.axvline(x=mean_i, color=(141/255, 160/255, 203/255), linestyle='--', linewidth=2)
         plt.title('Distribution of Three Transformation\'s Score')
+        # 去除白边
+        plt.tight_layout()
         plt.savefig(os.path.join(folder_path.split('/')[1], folder_path.split('/')[2], folder_path.split('/')[3] + '_transformation_score_distribution.png'))
         print("Save to " + os.path.join(folder_path.split('/')[1], folder_path.split('/')[2], folder_path.split('/')[3] + '_transformation_score_distribution.png'))
     # 显示图形
