@@ -1,3 +1,3 @@
 from .read_data import read_pmc, read_pm
 from .utils import rouge1_f_test_introduction, rouge1_f_gold_summary
-from .draw_figure import process_data_for_all_tasks, draw_line_box_bar_figure, draw_double_line_box_bar_figure, cal_gumbel, cal_and_draw_transformation_score, draw_main_result_figure
+from .draw_figure import process_data_for_all_tasks, draw_line_box_bar_figure, draw_double_line_box_bar_figure, cal_gumbel, cal_and_draw_transformation_score, draw_main_result_figure, draw_node_num_r_i_figure

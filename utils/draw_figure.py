@@ -285,6 +285,81 @@ def draw_double_line_box_bar_figure(r_1_distribution_dict, r_i_distribution_dict
     plt.savefig(os.path.join(folder_path, 'r_1_r_i_distribution_and_mean_cost_figure.png'))
     plt.show()
 
+def draw_node_num_r_i_figure(r_1_distribution_dict, r_i_distribution_dict, mean_r_1_list, mean_cost_dict, folder_path):
+    # 使用sorted函数和lambda表达式按值排序字典的键  
+    sorted_key = sorted(mean_cost_dict, key=lambda k: mean_cost_dict[k], reverse=False)
+    r_i_distribution = []
+    # 输出排序后的键列表  
+    for key in sorted_key:
+        r_i_distribution.append(np.array(r_i_distribution_dict[key]))
+
+    # 将数据放入数据框
+    df = pd.DataFrame({
+        'x': np.concatenate(r_i_distribution),
+        'g': np.repeat(['k = 3', 'k = 6', 'k = 9', 'k = 12', 'k = 15'], len(r_i_distribution_dict[key]))
+    })
+    # 设置Seaborn图形的上下文
+    sns.set_context("notebook", font_scale=6)
+    # 初始化 FacetGrid 对象
+    pal = sns.cubehelix_palette(5, rot=-.25, light=.7)
+    colors = [(0.29687043, 0.29687043, 0.59607843), (0.39843137, 0.39843137, 0.8), (0.50000769, 0.50000769, 1), (0.59843137, 0.59843137, 1.), (0.700792, 0.700792, 1)]
+    colors = colors[::-1]
+
+    g = sns.FacetGrid(df, row="g", hue="g", aspect=15, height=3, palette=colors)
+
+    # 绘制密度图
+    g.map(sns.kdeplot, "x",
+        bw_adjust=.5, clip_on=False,
+        fill=True, alpha=1, linewidth=1.5)
+    g.map(sns.kdeplot, "x", clip_on=False, color="w", lw=6, bw_adjust=.5)
+
+    # 添加参考线
+    g.refline(y=0, linewidth=6, linestyle="-", color=None, clip_on=False)
+
+    # 添加折线图
+    for i, data in enumerate(r_i_distribution):
+        variance_value_1 = statistics.variance(data)
+        mean_value_1 = sum(data) / len(data)
+        # 定义参数
+        beta = np.sqrt(6*variance_value_1)/np.pi  # 尺度参数
+        mu = mean_value_1 - 0.577215*beta # 位置参数
+        # 生成一些数据点
+        x_1 = np.linspace(gumbel_r.ppf(0.01, loc=mu, scale=beta), gumbel_r.ppf(0.99, loc=mu, scale=beta), 1000)
+
+        # 计算概率密度函数值
+        pdf_1 = gumbel_r.pdf(x_1, loc=mu, scale=beta)
+        sns.lineplot(x=x_1, y=pdf_1, ax=g.axes[i, 0], color=(127/255, 127/255, 255/255), linewidth=8)
+
+        # 在均值处添加竖线
+        g.axes[i, 0].axvline(x=mean_value_1, color='gray', linestyle='--', linewidth=8)
+
+        # 标注竖线的大小
+        g.axes[i, 0].text(mean_value_1, 0.4, f'Mean: {mean_value_1:.3f}', color='white', ha='right')
+
+    # 添加标签
+    def label(x, color, label):
+        ax = plt.gca()
+        ax.text(0, .2, label, fontweight="bold", color=color,
+                ha="left", va="center", transform=ax.transAxes)
+
+    g.map(label, "g")
+    # 设置 x 轴标签
+    g.set_axis_labels("Intro. R-1 scores under different Branching Factors", fontsize=72)
+
+    # 调整子图重叠
+    g.figure.subplots_adjust(hspace=-0.0)
+
+    # 删除轴细节
+    g.set_titles("")
+    g.set(yticks=[], ylabel="")
+    g.despine(bottom=True, left=True)
+    # 去除白边
+    #plt.tight_layout()
+
+    plt.savefig(os.path.join(folder_path, 'nodes_num_r_i_distribution_figure.png'))
+    # 显示图形
+    plt.show()
+
 def cal_gumbel(mean, var, p):
     # mu = mean
     beta = np.sqrt(6*var)/np.pi
