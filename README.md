@@ -4,6 +4,24 @@
 
 This is the implementation of our LREC-COLING 2024 paper DGoT: Dynamic Graph of Thoughts for Scientific Abstract Generation.
 
+## Quick Start
+
+### Environment Setup
+
+We strongly recommend that you use Docker images to run our programs.
+
+```bash
+docker pull jaycening/dgot_demo:v1.0.0
+```
+
+The image is preconfigured with InternLM2 deployed under LMDeploy version 0.2.4.
+
+If you want to configure the environment manually, see the documentation
+
+### Data Preparation for PubMedCite Dataset
+
+
+
 ## Acknowledgement
 
 This work is based on the following prompt framework, large language model, and model deployment toolkit. Thanks for the open source contribution!
