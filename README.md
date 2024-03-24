@@ -25,7 +25,7 @@ cd /home/nxy/LLM/DGoT
 
 The image is preconfigured with InternLM2 deployed under LMDeploy version 0.2.4.
 
-If you want to configure the environment manually, see the documentation
+If you want to configure the environment manually, see the documentation [environment_setup.md](https://github.com/JayceNing/DGoT/blob/master/docs/environment_setup.md)
 
 ### Data Preparation for PubMedCite Dataset
 

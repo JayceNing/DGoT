@@ -43,7 +43,8 @@ Install PYROUGE
 cd install_pyrouge/pyrouge
 python setup.py install
 
-# The path needs to be set to the absolute path of the ROUGE-1.5.5 folder downloaded from the https://github.com/bheinzerling/pyrouge repository.
+# The path needs to be set to the absolute path of the ROUGE-1.5.5 folder 
+# downloaded from the https://github.com/bheinzerling/pyrouge repository.
 pyrouge_set_rouge_path /PATH/TO/pyrouge/tools/ROUGE-1.5.5/
 ```
 
