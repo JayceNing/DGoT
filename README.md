@@ -2,7 +2,7 @@
 
 ![](./paper/img/overall_process.png)
 
-This is the implementation of our LREC-COLING 2024 paper DGoT: Dynamic Graph of Thoughts for Scientific Abstract Generation.
+This is the implementation of our LREC-COLING 2024 paper [DGoT: Dynamic Graph of Thoughts for Scientific Abstract Generation](https://arxiv.org/abs/2403.17491).
 
 ## Quick Start
 
@@ -82,10 +82,13 @@ Using this in your work? Please reference us using the provided citation:
 
 
 ```
-@misc{jaycening2024dgot,
-  title = {{DGoT: Dynamic Graph of Thoughts for Scientific Abstract Generation}},
-  author = {Xinyu Ning, Yutong Zhao, Yitong Liu, Hongwen Yang},
-  year = {2024},
+@misc{ning2024dgot,
+      title={DGoT: Dynamic Graph of Thoughts for Scientific Abstract Generation}, 
+      author={Xinyu Ning and Yutong Zhao and Yitong Liu and Hongwen Yang},
+      year={2024},
+      eprint={2403.17491},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
 }
 ```
 
