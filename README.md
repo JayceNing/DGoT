@@ -63,6 +63,11 @@ python generate_abstract.py --begin 0 --end 100 --mode "test" --model "internlm2
 
 * `thresh_g`, `thresh_a` and `thresh_i` respectively represent the thresholds used for generating transformation, aggregating transformation, and boosting transformation in DGoT.
 
+## Tutorials
+Here, we provide detailed tutorials on other aspects.
+*  [Environment Setup Manually](https://github.com/JayceNing/DGoT/blob/master/docs/environment_setup.md)
+* [Appendix Experiment Procedure](https://github.com/JayceNing/DGoT/blob/master/docs/appendix_tutorial.md)
+
 ## Acknowledgement
 
 This work is based on the following prompt framework, large language model, and model deployment toolkit. Thanks for the open source contribution!
