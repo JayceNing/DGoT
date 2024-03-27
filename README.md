@@ -8,7 +8,7 @@ This is the implementation of our LREC-COLING 2024 paper [DGoT: Dynamic Graph of
 
 ### Environment Setup
 
-We strongly recommend that you use Docker images to run our programs.
+We strongly recommend that you use Docker images [dgot_demo](https://hub.docker.com/r/jaycening/dgot_demo/tags) to run our programs.
 
 ```bash
 # pull docker image
@@ -81,7 +81,7 @@ If you find this repository valuable, please give it a star!
 Using this in your work? Please reference us using the provided citation:
 
 
-```
+```bibtex
 @misc{ning2024dgot,
       title={DGoT: Dynamic Graph of Thoughts for Scientific Abstract Generation}, 
       author={Xinyu Ning and Yutong Zhao and Yitong Liu and Hongwen Yang},

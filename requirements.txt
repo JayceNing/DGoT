@@ -1,0 +1,9 @@
+lmdeploy[all]==v0.2.4
+torch
+beautifulsoup4
+seaborn
+requests
+tqdm
+scipy
+backoff
+openai==0.28.1
